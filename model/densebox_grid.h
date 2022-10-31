@@ -1,3 +1,4 @@
+// FIXME: Change to struct.
 class DenseboxGrid {
   private:
   
