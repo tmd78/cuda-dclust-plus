@@ -13,14 +13,14 @@ struct Cell
 struct Grid
 {
   double cellLength;
-  std::vector<int> dimensions;
+  std::vector<uint64_t> dimensions;
   std::vector<double> minBounds;
   std::vector<double> maxBounds;
 };
 
 struct Point
 {
-  unsigned int index;
+  uint64_t index;
 
   // Index of the cell this point belongs to.
   uint64_t linearId;

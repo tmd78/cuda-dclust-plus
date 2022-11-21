@@ -1,18 +1,25 @@
-#include "densebox.h"
+#include "densebox.hpp"
 
 using std::cout;
 using std::map;
 using std::vector;
 
-void Densebox::cluster(vector<vector<double>> &data, double epsilon, int minPts)
+bool Densebox::cluster(vector<vector<double>> &data, double epsilon, int minPts)
 {
+  // Validate arguments.
+  if (epsilon < 0)
+  {
+    cout << "[Densebox] epsilon cannot be negative" << '\n';
+    return false;
+  }
+
   // Create grid.
   createGrid(data, epsilon);
 
   // region Assign points to cells.
   //--------------------------------------------------------------------------------
   int dCellIndex;
-  unsigned long int dataSize = data[0].size();
+  uint64_t dataSize = data[0].size();
   uint64_t linearId;
   uint64_t multiplier;
 
@@ -20,7 +27,7 @@ void Densebox::cluster(vector<vector<double>> &data, double epsilon, int minPts)
   points.resize(dataSize);
 
 #pragma omp parallel for private(cellIndex, linearId, multiplier)
-  for (unsigned long int i = 0; i < dataSize; i++)
+  for (uint64_t i = 0; i < dataSize; i++)
   {
     linearId = 0;
     multiplier = 1;
@@ -30,9 +37,11 @@ void Densebox::cluster(vector<vector<double>> &data, double epsilon, int minPts)
       // Get point i's cell index in dimension d.
       dCellIndex = floor((data[d][i] - grid_.minBounds[d]) / grid_.cellLength);
 
-      // Modify linear ID using cell index.
+      // Calculate linear ID.
       linearId += dCellIndex * multiplier;
-      multiplier *= dataSize;
+
+      // Modify multiplier for next dimension.
+      multiplier *= grid_.dimensions[d];
     }
 
     points[i].index = i;
@@ -43,15 +52,22 @@ void Densebox::cluster(vector<vector<double>> &data, double epsilon, int minPts)
 
   // Sort points by linear ID in ascending order.
   sort(points.begin(), points.end(), comparePoints);
-  
-  // Find dense box indices.
-  vector<uint64_t> denseBoxIndices;
-  findDenseBoxes(denseBoxIndices, points, dataSize, minPts);
+
+  // Find dense boxes.
+  vector<uint64_t> denseBoxLinearIds;
+  findDenseBoxes(denseBoxLinearIds, points, dataSize, minPts);
+
+  UnionFind disjointSets = UnionFind(denseBoxLinearIds.size());
+
+  for (int i = 1; i < denseBoxLinearIds.size(); i++)
+  {
+    // FIXME: Get x and y coordinates of current dense box.
+  }
 
   // region Assign points to dense boxes (again?).
   //--------------------------------------------------------------------------------
   vector<Cell> denseBoxes;
-  denseBoxes.resize(denseBoxIndices.size());
+  denseBoxes.resize(denseBoxLinearIds.size());
 
   uint64_t currentLinearId;
   vector<Point>::iterator low;
@@ -59,7 +75,7 @@ void Densebox::cluster(vector<vector<double>> &data, double epsilon, int minPts)
 #pragma omp parallel for private(currentLinearId, low)
   for (uint64_t i = 0; i < denseBoxes.size(); i++)
   {
-    currentLinearId = denseBoxIndices[i];
+    currentLinearId = denseBoxLinearIds[i];
     denseBoxes[i].linearId = currentLinearId;
 
     // Note that points is sorted by linearId.
@@ -77,11 +93,7 @@ void Densebox::cluster(vector<vector<double>> &data, double epsilon, int minPts)
   //--------------------------------------------------------------------------------
   // endregion Assign points to dense boxes.
 
-  UnionFind disjointSets = UnionFind(denseBoxes.size());
-
-  for (int i = 1; i < denseBoxes.size(); i++) {
-    //
-  }
+  return true;
 }
 
 bool comparePoints(const Point &a, const Point &b)
@@ -92,12 +104,6 @@ bool comparePoints(const Point &a, const Point &b)
 // data is pass-by-reference so a copy is not made; it is not modified.
 bool Densebox::createGrid(vector<vector<double>> &data, double epsilon)
 {
-  if (epsilon < 0)
-  {
-    cout << "[Densebox] epsilon cannot be negative" << '\n';
-    return false;
-  }
-
   // Calculate length of one cell side.
   double cellLength = epsilon / (2.0 * sqrt(2.0));
 
@@ -139,7 +145,7 @@ bool Densebox::createGrid(vector<vector<double>> &data, double epsilon)
   return true;
 }
 
-void findDenseBoxes(vector<uint64_t> &denseBoxIndices, vector<Point> &points, uint64_t dataSize, int minPts)
+void findDenseBoxes(vector<uint64_t> &denseBoxLinearIds, vector<Point> &points, uint64_t dataSize, int minPts)
 {
   // Index of cell being processed.
   uint64_t current = points[0].linearId;
@@ -157,7 +163,7 @@ void findDenseBoxes(vector<uint64_t> &denseBoxIndices, vector<Point> &points, ui
       // Check if the current cell is a dense box.
       if (density >= minPts)
       {
-        denseBoxIndices.push_back(current);
+        denseBoxLinearIds.push_back(current);
       }
 
       current = points[i].linearId;
@@ -168,6 +174,6 @@ void findDenseBoxes(vector<uint64_t> &denseBoxIndices, vector<Point> &points, ui
   // Check if the last cell is a dense box.
   if (density >= minPts)
   {
-    denseBoxIndices.push_back(current);
+    denseBoxLinearIds.push_back(current);
   }
 }

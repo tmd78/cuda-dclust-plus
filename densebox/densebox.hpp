@@ -19,7 +19,7 @@ private:
   bool createGrid(std::vector<std::vector<double>> &data, double epsilon);
 
 public:
-  void cluster(std::vector<std::vector<double>> &data, double epsilon, int minPts);
+  bool cluster(std::vector<std::vector<double>> &data, double epsilon, int minPts);
 };
 
 #endif
