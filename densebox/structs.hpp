@@ -2,19 +2,20 @@
 #define STRUCTS_H
 
 #include <cstdint>
+#include <vector>
 
 struct Cell
 {
   uint64_t linearId;
-  vector<uint64_t> pointIndices;
+  std::vector<uint64_t> pointIndices;
 };
 
 struct Grid
 {
   double cellLength;
-  vector<int> dimensions;
-  vector<double> minBounds;
-  vector<double> maxBounds;
+  std::vector<int> dimensions;
+  std::vector<double> minBounds;
+  std::vector<double> maxBounds;
 };
 
 struct Point

@@ -8,8 +8,9 @@
 #include <omp.h>
 #include <vector>
 
-#include "constants.h"
-#include "structs.h"
+#include "constants.hpp"
+#include "structs.hpp"
+#include "union-find.hpp"
 
 class Densebox
 {

@@ -43,10 +43,9 @@ void Densebox::cluster(vector<vector<double>> &data, double epsilon, int minPts)
 
   // Sort points by linear ID in ascending order.
   sort(points.begin(), points.end(), comparePoints);
-
-  vector<uint64_t> denseBoxIndices;
-
+  
   // Find dense box indices.
+  vector<uint64_t> denseBoxIndices;
   findDenseBoxes(denseBoxIndices, points, dataSize, minPts);
 
   // region Assign points to dense boxes (again?).
@@ -78,7 +77,11 @@ void Densebox::cluster(vector<vector<double>> &data, double epsilon, int minPts)
   //--------------------------------------------------------------------------------
   // endregion Assign points to dense boxes.
 
-  // FIXME: Finish.
+  UnionFind disjointSets = UnionFind(denseBoxes.size());
+
+  for (int i = 1; i < denseBoxes.size(); i++) {
+    //
+  }
 }
 
 bool comparePoints(const Point &a, const Point &b)
