@@ -44,12 +44,41 @@ void Densebox::cluster(vector<vector<double>> &data, double epsilon, int minPts)
   // Sort points by linear ID in ascending order.
   sort(points.begin(), points.end(), comparePoints);
 
-  vector<uint64_t> denseBoxes;
+  vector<uint64_t> denseBoxIndices;
 
-  // Find dense boxes.
-  findDenseBoxes(denseBoxes, points, dataSize, minPts);
+  // Find dense box indices.
+  findDenseBoxes(denseBoxIndices, points, dataSize, minPts);
 
-  // FIXME: Finish implementation.
+  // region Assign points to dense boxes (again?).
+  //--------------------------------------------------------------------------------
+  vector<Cell> denseBoxes;
+  denseBoxes.resize(denseBoxIndices.size());
+
+  uint64_t currentLinearId;
+  vector<Point>::iterator low;
+
+#pragma omp parallel for private(currentLinearId, low)
+  for (uint64_t i = 0; i < denseBoxes.size(); i++)
+  {
+    currentLinearId = denseBoxIndices[i];
+    denseBoxes[i].linearId = currentLinearId;
+
+    // Note that points is sorted by linearId.
+    // Find first index in points that belongs to dense box i.
+    Point value = {.linearId = currentLinearId};
+    low = std::lower_bound(points.begin(), points.end(), value);
+    uint64_t currentPointIndex = std::distance(points.begin(), low);
+
+    while (points[currentPointIndex].linearId == currentLinearId)
+    {
+      denseBoxes[i].pointIndices.push_back(currentPointIndex);
+      currentPointIndex += 1;
+    }
+  }
+  //--------------------------------------------------------------------------------
+  // endregion Assign points to dense boxes.
+
+  // FIXME: Finish.
 }
 
 bool comparePoints(const Point &a, const Point &b)
@@ -107,7 +136,7 @@ bool Densebox::createGrid(vector<vector<double>> &data, double epsilon)
   return true;
 }
 
-void findDenseBoxes(vector<uint64_t> &denseBoxes, vector<Point> &points, uint64_t dataSize, int minPts)
+void findDenseBoxes(vector<uint64_t> &denseBoxIndices, vector<Point> &points, uint64_t dataSize, int minPts)
 {
   // Index of cell being processed.
   uint64_t current = points[0].linearId;
@@ -125,7 +154,7 @@ void findDenseBoxes(vector<uint64_t> &denseBoxes, vector<Point> &points, uint64_
       // Check if the current cell is a dense box.
       if (density >= minPts)
       {
-        denseBoxes.push_back(current);
+        denseBoxIndices.push_back(current);
       }
 
       current = points[i].linearId;
@@ -133,9 +162,9 @@ void findDenseBoxes(vector<uint64_t> &denseBoxes, vector<Point> &points, uint64_
     }
   }
 
-  // Check if the current cell is a dense box.
+  // Check if the last cell is a dense box.
   if (density >= minPts)
   {
-    denseBoxes.push_back(current);
+    denseBoxIndices.push_back(current);
   }
 }
