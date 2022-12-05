@@ -18,8 +18,15 @@ struct Grid
   std::vector<double> maxBounds;
 };
 
+struct MergePair
+{
+  uint64_t linearId1;
+  uint64_t linearId2;
+};
+
 struct Point
 {
+  std::vector<uint64_t> cellCoordinates;
   uint64_t index;
 
   // Index of the cell this point belongs to.
